@@ -8,26 +8,6 @@ using System.Linq;
 
 public class CPHInline : CPHInlineBase
 {
-    public void Init()
-    {
-        CPH.RegisterCustomTrigger("VNDex - Catch Made", "vndex_catch", new[] {"Luposity", "VNyan", "VNDEX"});
-        int VNDexWS = CPH.WebsocketCustomServerGetConnectionByName("VN-Dex - WSS");
-
-        // Check Custom WebSocket Server is Listening
-        if (!CPH.WebsocketCustomServerIsListening(VNDexWS)){
-            CPH.LogError("[VNDex] WebSocket Server Isn't Listening, Attempting to Start WebSocket Server...");
-            try {
-                // Try to Start the WebSocket Server
-                CPH.WebsocketCustomServerStart(VNDexWS);
-            } catch {
-                // Failed to Start Websocket Server, Check Log Folder.
-                CPH.LogError("[VNDex] Failed to Start VNDex WSS, Check the Port isn't being used by another Application.");
-                CPH.SendMessage("There was an Error starting VNDex WebSocket Server, Check logs for details.");
-            }
-            
-        }
-    }
-
     public bool Execute()
     {
         // Check that WS data exists.
@@ -88,13 +68,6 @@ public class CPHInline : CPHInlineBase
         int userCatchAmount = CPH.GetTwitchUserVarById<int>(userId, "userpokeballCatches", true);
         int userShinyCatchAmount = CPH.GetTwitchUserVarById<int>(userId, "userpokeballCatchesShiny", true);
 
-
-
-        double shinyChance = CPH.GetGlobalVar<double>("VNDex - Base Shiny Chance", true);
-        double shinyChanceHypeTrain = CPH.GetGlobalVar<double>("VNDex - Hype Train Shiny Rates Chance", true);
-        //long userCatchAmount = CPH.GetTwitchUserVar<long>(userWhoCaught, "userpokeballCatches", true);
-        int VNDexWS = CPH.WebsocketCustomServerGetConnectionByName("VN-Dex - WSS");
-        CPH.WebsocketCustomServerStart();
         return true;
     }
 
