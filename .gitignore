@@ -396,3 +396,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# vscode folder
+.vscode/
+bin/
+obj/
+*.csproj
