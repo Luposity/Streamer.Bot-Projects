@@ -20,7 +20,7 @@ public class CPHInline : CPHInlineBase
 		CPH.TryGetArg("rawInput", out string InputString);
 		
 		// Flipped Text Result
-		string newText = TextFlip(InputString.ToLower());
+		string newText = TextFlip(InputString.ToLower().Replace("@", ""));
 		
 		// Switch Action based on Command
 		switch(command) {
@@ -43,11 +43,17 @@ public class CPHInline : CPHInlineBase
 					return true;
 				}
 				break;
+			case "!angryflip":
+				int mid = newText.Length / 2;
+				string left = newText.Substring(0, mid);
+				string right = newText.Substring(mid);
+				CPH.SendMessage($@"{left} ︵ \(°□°)/ ︵ {right}", true, true);
+				break;
 		}
 		return true;
 	}
 	
-	// Text Flip
+	// Characters to flip
 	private string TextFlip(string InputString)
 	{
 	char[] X = @"¿/˙'\‾¡zʎxʍʌnʇsɹbdouɯlʞɾıɥƃɟǝpɔqɐ".ToCharArray();
