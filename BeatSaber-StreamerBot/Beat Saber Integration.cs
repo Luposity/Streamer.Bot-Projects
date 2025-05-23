@@ -1,18 +1,37 @@
-﻿using Streamer.bot.Plugin.Interface;
+/// * Beat Saber DataPuller Mod Integration for Streamer.Bot
+/// * This Requires the DataPuller Mod to be installed in your Beat Saber Install to Function
+
+using Streamer.bot.Plugin.Interface;
 using Streamer.bot.Plugin.Interface.Enums;
 using Streamer.bot.Plugin.Interface.Model;
 using Streamer.bot.Common.Events;
 using System;
-using System.IO;
-using System.Net;
-using System.Net.Http;
 using System.Collections.Generic;
-using System.Text.Json;
-using Newtonsoft.Json;
 using System.Linq;
+using Newtonsoft.Json;
 
-public class CPHInline : CPHInlineBase
+public class BeatSaberToStreamerBot : CPHInlineBase
 {
+    public void Init()
+    {
+        // Attempt to create custom triggers for Streamer.Bot
+        try
+        {
+            CPH.RegisterCustomTrigger("Paused State Changed", "bs_isPaused", new[] { "Luposity", "Beat Saber", "Map Data" });
+            CPH.RegisterCustomTrigger("Playing State Changed", "bs_isPlaying", new[] { "Luposity", "Beat Saber", "Map Data" });
+            CPH.RegisterCustomTrigger("In Menu", "bs_inMenu", new[] { "Luposity", "Beat Saber", "Map Data" });
+            CPH.RegisterCustomTrigger("Map Quit", "bs_mapQuit", new[] { "Luposity", "Beat Saber", "Map Data" });
+            CPH.RegisterCustomTrigger("Note Missed", "bs_miss", new[] { "Luposity", "Beat Saber", "Live Data" });
+            CPH.RegisterCustomTrigger("Player Died", "bs_dead", new[] { "Luposity", "Beat Saber", "Live Data" });
+            CPH.RegisterCustomTrigger("Rank Changed", "bs_rankChange", new[] { "Luposity", "Beat Saber", "Live Data" });
+            return;
+        }
+        catch
+        {
+            CPH.LogError("Failed to initialize Custom Triggers");
+            return;
+        }
+    }
     // Define and store a Cached Integer of Misses.
     private int localMissCache = 0;
     
@@ -48,21 +67,23 @@ public class CPHInline : CPHInlineBase
         }
         
         MapData DataPullerMap = JsonConvert.DeserializeObject<MapData>(wsData);
-        
+
         if (DataPullerMap.InLevel && !inLevel && DataPullerMap.BSRKey != null) {
-        	CPH.WebsocketSend("BSInSongCam", VNyanWebSocket);
-        	CPH.SetGlobalVar("inLevel", true, false);
+        	// Set current VNyan Camera to Playing Camera
+        	CPH.WebsocketSend("BSInSong", VNyanWebSocket);
+        	CPH.SetGlobalVar("DataPuller_BSR", DataPullerMap.BSRKey, false);
+			CPH.SetGlobalVar("DataPuller_Diff", DataPullerMap.Difficulty, false);
+			CPH.SetGlobalVar("DataPuller_DiffLabel", DataPullerMap.CustomDifficultyLabel, false);
         	inLevel = true;
 			return true;
         }
-
-        // Level Finished, Quit or Failed.
         if (DataPullerMap.LevelFinished || DataPullerMap.LevelFailed || DataPullerMap.LevelQuit && inLevel) {
-			CPH.WebsocketSend("BSMenuCam", VNyanWebSocket);
-			if (health > 0.0) {
+        	// Set current VNyan Camera to Menu Camera
+			CPH.WebsocketSend("BSMenu", VNyanWebSocket);
+			// Passed Map? Yay!
+			if (health > 0.0 && DataPullerMap.LevelFinished) {
                 CPH.WebsocketSend("BSYay", VNyanWebSocket);
             }
-			CPH.SetGlobalVar("inLevel", false, false);
 			inLevel = false;
 			return true;
 		}
@@ -83,7 +104,7 @@ public class CPHInline : CPHInlineBase
         // Check VNyan WebSocket is Connected.
         if (!CPH.WebsocketIsConnected(VNyanWebSocket))
         {
-            CPH.LogWarn("[DataPuller: LiveData] - VNyan Websocket is not connected, is it turned on?");
+            CPH.LogWarn("[DataPuller: LiveData] - VNyan Websocket is not connected");
             return false;
         }
 
@@ -98,7 +119,9 @@ public class CPHInline : CPHInlineBase
         }
 		
 		// Update Health Variable to Players Current Health.
-		health = DataPullerLive.PlayerHealth;
+		if (DataPullerLive.PlayerHealth != health) {
+			health = DataPullerLive.PlayerHealth;
+		}
 		
         // Throw Beat Saber Block in VNyan on Miss
         // Will only throw if player is alive.
@@ -109,7 +132,7 @@ public class CPHInline : CPHInlineBase
         }
 
         // Set Combo Multiplier to Trigger Expression
-        int expressOn = 250;
+        int expressOn = 150;
         bool comboExpression = DataPullerLive.Combo % expressOn == 0;
         
         // Make avatar Express on Specified Multiple of Combo
@@ -278,7 +301,7 @@ public class MapData
     public double PP { get; set; }
     public double Star { get; set; }
     public RankedState RankedState { get; set; }
-    public double Rating { get; set; }
+    public double? Rating { get; set; }
     public ColorScheme ColorScheme { get; set; }
     public bool IsMultiplayer { get; set; }
     public int MultiplayerLobbyMaxSize { get; set; }
